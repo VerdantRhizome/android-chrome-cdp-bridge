@@ -1,28 +1,14 @@
-import json, re, subprocess, sys
+import json, subprocess, sys, time
 from pathlib import Path
+from zeroconf import Zeroconf, ServiceBrowser
 
 CDP_PORT = 9333
-
-def get_local_ip() -> str:
-    result = subprocess.run(["ifconfig", "wlan0"], capture_output=True, text=True)
-    m = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', result.stdout)
-    return m.group(1) if m else ""
 
 def adb_connect(host: str, port: int) -> bool:
     result = subprocess.run(
         ["adb", "connect", f"{host}:{port}"], capture_output=True, text=True
     )
     return "connected" in result.stdout and "failed" not in result.stdout
-
-def adb_scan_ports(host: str, saved_port: int, radius: int = 10) -> int | None:
-    candidates = sorted(
-        set(range(max(1024, saved_port - radius), saved_port + radius + 1)),
-        key=lambda p: abs(p - saved_port),
-    )
-    for port in candidates:
-        if adb_connect(host, port):
-            return port
-    return None
 
 def forward_cdp_port() -> bool:
     result = subprocess.run(
@@ -31,32 +17,46 @@ def forward_cdp_port() -> bool:
     )
     return result.returncode == 0
 
-def load_config(path: Path) -> dict:
-    if path.exists():
-        return json.loads(path.read_text())
-    return {"adb_host": "", "adb_port": 0}
+def discover_adb_service(timeout: int = 3):
+    found_service = None
 
-def save_config(cfg: dict, path: Path) -> None:
-    path.write_text(json.dumps(cfg, indent=2))
+    def on_service_state_change(zeroconf, service_type, name, state_change):
+        nonlocal found_service
+        if state_change.name == "Added":
+            info = zeroconf.get_service_info(service_type, name)
+            if info:
+                # Get the first IPv4 address
+                addresses = info.parsed_addresses()
+                if addresses:
+                    found_service = (addresses[0], info.port)
+
+    zc = Zeroconf()
+    browser = ServiceBrowser(zc, "_adb-tls-connect._tcp.local.", handlers=[on_service_state_change])
+    
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if found_service:
+            break
+        time.sleep(0.1)
+    
+    zc.close()
+    return found_service
 
 def setup_cdp():
-    cfg_path = Path("config.json")
-    cfg = load_config(cfg_path)
+    print("Scanning local network for ADB Wireless Debugging service...")
+    service = discover_adb_service(timeout=4)
     
     connected = False
-    current_ip = get_local_ip() or cfg.get("adb_host", "")
-    if current_ip:
-        if cfg.get("adb_port") and adb_connect(current_ip, cfg["adb_port"]):
-            cfg["adb_host"] = current_ip
-            save_config(cfg, cfg_path)
+    
+    if service:
+        host, port = service
+        print(f"Discovered ADB service at {host}:{port}. Attempting to connect...")
+        if adb_connect(host, port):
             connected = True
         else:
-            port = adb_scan_ports(current_ip, cfg.get("adb_port") or 42000)
-            if port:
-                cfg["adb_host"] = current_ip
-                cfg["adb_port"] = port
-                save_config(cfg, cfg_path)
-                connected = True
+            print("[error] Discovered service but failed to connect (ADB pairing may have expired).")
+    else:
+        print("[error] Could not find any ADB Wireless Debugging service on the network.")
 
     if not connected:
         if sys.stdin.isatty():
@@ -71,14 +71,19 @@ def setup_cdp():
                     capture_output=True, text=True,
                 )
                 host, _ = pair_addr.rsplit(":", 1)
-                connect_port_str = input(
-                    "Enter connect port (main Wireless debugging screen): "
-                ).strip()
-                if connect_port_str and adb_connect(host, int(connect_port_str)):
-                    cfg["adb_host"] = host
-                    cfg["adb_port"] = int(connect_port_str)
-                    save_config(cfg, cfg_path)
-                    connected = True
+                
+                print("\nPairing complete! Re-scanning for the connection port...")
+                service = discover_adb_service(timeout=5)
+                if service:
+                    host, port = service
+                    if adb_connect(host, port):
+                        connected = True
+                else:
+                    connect_port_str = input(
+                        "Scan failed. Enter connect port (main Wireless debugging screen): "
+                    ).strip()
+                    if connect_port_str and adb_connect(host, int(connect_port_str)):
+                        connected = True
         else:
             print("Not connected, and no interactive TTY to prompt for pairing.")
 

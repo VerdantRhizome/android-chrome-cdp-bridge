@@ -1,8 +1,8 @@
-import json, subprocess, sys, time
+import json, subprocess, sys, time, os
 from pathlib import Path
 from zeroconf import Zeroconf, ServiceBrowser
 
-CDP_PORT = 9333
+CDP_PORT = int(os.environ.get("CDP_PORT", 9333))
 
 def adb_connect(host: str, port: int) -> bool:
     result = subprocess.run(

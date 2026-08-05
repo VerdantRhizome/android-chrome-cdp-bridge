@@ -16,20 +16,14 @@ It will automatically find the randomized port, connect via `adb`, and forward t
 2. Python 3+
 3. Android device connected to the same Wi-Fi network with **Wireless Debugging** enabled in Developer Options.
 
-## Installation
+## Installation & Usage
+
+This project uses `uv` for blazing-fast, reproducible dependency management. You do not need to manually create virtual environments or install dependencies.
 
 ```bash
 git clone https://github.com/AveryRPeterson/termux-agent-browser.git
 cd termux-agent-browser
-pip install -r requirements.txt
-```
-
-## Usage
-
-Run the connection script:
-
-```bash
-python main.py
+uv run main.py
 ```
 
 If it is your first time connecting, the script will interactively guide you through the ADB pairing process. Once paired, subsequent runs will automatically discover the port and connect.
@@ -40,7 +34,7 @@ You can override the default CDP forwarding port by setting the `CDP_PORT` envir
 
 ```bash
 export CDP_PORT=9222
-python main.py
+uv run main.py
 ```
 
 ## Connecting your Agent

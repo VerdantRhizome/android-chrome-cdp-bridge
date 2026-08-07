@@ -1,10 +1,14 @@
 [project]
 name = "android-chrome-cdp-bridge"
 version = "0.1.0"
-description = "Add your description here"
+description = "CDP bridge/forwarder for Android Chrome (not agent-browser). mDNS ADB discovery + keep-alive forward to a local CDP endpoint."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "websockets>=16.1.1",
     "zeroconf>=0.150.0",
 ]
+
+[project.scripts]
+android-chrome-cdp = "main:main"
+attach-cdp = "attach:main"

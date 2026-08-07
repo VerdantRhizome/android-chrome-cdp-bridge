@@ -2,7 +2,7 @@ import json, subprocess, sys, time, os
 from pathlib import Path
 from zeroconf import Zeroconf, ServiceBrowser
 
-CDP_PORT = int(os.environ.get("CDP_PORT", 9333))
+CDP_PORT = int(os.environ.get("CDP_PORT", 9222))
 
 def adb_connect(host: str, port: int) -> bool:
     result = subprocess.run(
@@ -96,5 +96,9 @@ def setup_cdp():
     else:
         print("[error] Failed to connect ADB.")
 
-if __name__ == "__main__":
+def main() -> int:
     setup_cdp()
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

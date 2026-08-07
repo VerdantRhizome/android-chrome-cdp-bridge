@@ -182,7 +182,7 @@ connector only when the socket is down:
 hermes cron create \
   --schedule "*/1 * * * *" \
   --name "cdp-keepalive" \
-  --prompt "Run: cd ~/projects/termux-agent-browser && CDP_PORT=9222 uv run attach.py --port 9222
+  --prompt "Run: cd ~/projects/android-chrome-cdp-bridge && CDP_PORT=9222 uv run attach.py --port 9222
 If the CDP forward is already live (HTTP 200 on http://localhost:9222/json/version)
 the script exits immediately and does nothing. Only reconnect when it is dead." \
   --deliver local

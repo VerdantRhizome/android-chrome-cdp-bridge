@@ -192,3 +192,25 @@ the script exits immediately and does nothing. Only reconnect when it is dead." 
 `uv run main.py` when the port is unreachable, so this cron is cheap to run
 every minute. This complements — it does not replace — the per-tool
 `pre_tool_call` lazy-attach in the `hermes-cdp-attach` plugin.
+
+## Host-environment portability
+
+This bridge is a *CDP forwarder*, not `agent-browser`, so it runs wherever
+Python + `adb` can reach the phone's Wireless-Debugging port on the LAN. It is
+not limited to Termux. Confirmed / expected to work:
+
+- **Termux** (primary) — directly on the phone.
+- **proot-distro (Ubuntu/Alpine under Termux)** — `agent-browser`'s Rust
+  binary still can't run here, but this pure-Python bridge does. Note: proot's
+  network namespace may not share the host's loopback, so the forwarded
+  `localhost:9222` might need the host's LAN IP or a proot `-p`/linker forward
+  to be visible inside the proot environment.
+- **UserLAnd / Andronix** (Linux-on-Android) — same as above; just needs `adb`
+  present and LAN reach to the phone.
+- **A Linux laptop on the same Wi-Fi** driving the phone — the bridge doesn't
+  know it's "on Android"; it only needs `adb` + LAN reach to the device.
+
+**Out of scope (documented limitation):** cloud CI runners reaching a phone
+have no `adb`/LAN path to the device. That is why the hermes-agent
+`feat/android-chrome-raw-cdp` `live-e2e` CI job is intentionally not run; live
+verification stays on-demand and local.

@@ -1,8 +1,8 @@
-# Termux Agent Browser
+# Android Chrome CDP Bridge
 
 A zero-touch auto-discovery pipeline to enable local AI agents (like Hermes) to control an Android device's Chrome browser directly via the Chrome DevTools Protocol (CDP), using ADB over Wi-Fi.
 
-Because native headless browsers like Playwright (`agent-browser`) do not compile on the Android Termux `aarch64` environment, this tool bridges the gap by exposing the host Android device's live Chrome instance as a local CDP endpoint that the agent can connect to.
+> **What this is / is not:** this is a *CDP bridge/forwarder* for Android Chrome — it is **not** a port of `agent-browser` (vercel-labs/agent-browser, written in Rust, which cannot run on `android-arm64`). It exposes the host Android device's live Chrome instance as a local CDP endpoint that an agent can connect to.
 
 ## How it works
 

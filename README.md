@@ -61,14 +61,42 @@ browser:
 On `android-arm64` (Termux) Hermes's high-level browser tools
 (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`,
 `browser_vision`, …) are built on the `agent-browser` subprocess, which cannot
-install/run here (npm: `Unsupported platform: android-arm64`). They fail
-before touching Chrome. **This is a known Hermes-core limitation** (tracked
-for a fix — see the GitHub issue), not a problem with this connector.
+install/run here (npm: `Unsupported platform: android-arm64`). They used to
+fail before touching Chrome.
 
-What *does* work is the **raw CDP endpoint**, because `main.py` forwards the
-phone's real Chrome DevTools socket to `localhost:9222`. Two ways to use it:
+**That is now fixed by a local patch** in the Hermes agent checkout
+(`~/.hermes/hermes-agent/`): a raw-WebSocket CDP backend
+(`tools/browser_raw_cdp.py`) plus a hand-off in `tools/browser_tool.py`
+(`_run_browser_command` routes to it when `browser.cdp_url` is set and camofox
+mode is off). The high-level tools then drive the phone's Chrome directly via
+CDP — no `agent-browser` Node subprocess. This patch lives on the
+`feat/android-chrome-raw-cdp` branch of the fork
+`AveryRPeterson/hermes-agent` (not yet merged upstream).
 
-### 1. `cdp_helper.py` (this repo) — friendly wrapper
+Three ways to drive the browser:
+
+### 1. Hermes high-level browser tools (patched — preferred)
+
+With `browser.cdp_url: "http://localhost:9222"` in `~/.hermes/config.yaml`
+and the patch applied, just use the normal tools:
+
+```
+browser_navigate(url="https://example.com")
+browser_snapshot()        # returns text outline + @eN refs
+browser_click(ref="@e3")  # clicks the resolved element
+browser_vision(question="what is on this page")
+```
+
+Under the hood these call `run_raw_cdp_command` → your phone's Chrome. Verified
+end-to-end (live 6/6: navigate / snapshot / click / vision / wake-lock).
+
+**Keep the tab awake:** the patch auto-applies a Screen Wake Lock (re-acquired
+on `visibilitychange`) plus `Emulation.setIdleOverride` on every `open`, so the
+foregrounded tab does not sleep. Caveat: if Android fully backgrounds the
+Chrome app, the OS can still suspend it — keep Chrome open/foregrounded while
+driving it.
+
+### 2. `cdp_helper.py` (this repo) — friendly wrapper
 
 A standalone WebSocket CDP client that exposes the same operations the blocked
 tools would, but actually functional on the phone. Requires the `websockets`
@@ -104,7 +132,7 @@ with ChromeSession() as tab:
 `ChromeSession` auto-creates + attaches a tab and manages the CDP session, so
 you never handle `sessionId`s by hand.
 
-### 2. Hermes `browser_cdp` tool (raw CDP)
+### 3. Hermes `browser_cdp` tool (raw CDP)
 
 Hermes's `browser_cdp` tool sends raw CDP commands and is **not** subject to
 the android-arm64 guard, so it works directly. Example:
@@ -114,6 +142,27 @@ browser_cdp(method="Target.createTarget", params={"url": "https://example.com"})
 browser_cdp(method="Runtime.evaluate",
             params={"expression": "document.title", "returnByValue": true},
             target_id="<id from above>")
+```
+
+## CI for the Hermes patch
+
+The `feat/android-chrome-raw-cdp` branch carries `.github/workflows/integration.yml`:
+
+- `mock-e2e` — runs the deterministic scripted-CDP test
+  (`tools/tests/test_browser_raw_cdp_mock.py`, 15 checks) on `ubuntu-latest`
+  across Python 3.11/3.12. Fires on push / manual dispatch using the branch's
+  **own** workflow file (no main merge required).
+- `live-e2e` — gated behind a `workflow_dispatch` `run_live` input and
+  `runs-on: self-hosted`. It needs a self-hosted runner reachable to the
+  phone's CDP. We intentionally do **not** run it in CI (standing up a
+  self-hosted runner inside Termux requires proot-distro glibc, which is heavy);
+  the live path is instead verified on-demand locally (the 6/6 high-level E2E).
+
+To re-run the live E2E locally (keep Chrome foregrounded):
+
+```bash
+cd ~/.hermes/hermes-agent
+~/.hermes/hermes-agent/venv/bin/python /data/data/com.termux/files/usr/tmp/hermes-verify-hl.py
 ```
 
 ## Future improvement: keep-alive cron

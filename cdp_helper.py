@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cdp_helper — friendly Chrome DevTools Protocol client for termux-agent-browser.
+"""cdp_helper — friendly Chrome DevTools Protocol client for android-chrome-cdp-bridge.
 
 WHY THIS EXISTS
 ---------------
@@ -232,7 +232,7 @@ def _cmd(args) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Friendly CDP client for termux-agent-browser")
+    p = argparse.ArgumentParser(description="Friendly CDP client for android-chrome-cdp-bridge")
     p.add_argument("--port", type=int, default=None, help="CDP port (default $CDP_PORT or 9222)")
     sub = p.add_subparsers(dest="action", required=True)
 

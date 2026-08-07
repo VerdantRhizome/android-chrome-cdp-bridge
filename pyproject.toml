@@ -1,5 +1,5 @@
 [project]
-name = "termux-agent-browser"
+name = "android-chrome-cdp-bridge"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"

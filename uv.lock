@@ -16,7 +16,7 @@ wheels = [
 ]
 
 [[package]]
-name = "termux-agent-browser"
+name = "android-chrome-cdp-bridge"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

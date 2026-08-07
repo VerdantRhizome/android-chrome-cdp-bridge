@@ -21,8 +21,8 @@ It will automatically find the randomized port, connect via `adb`, and forward t
 This project uses `uv` for blazing-fast, reproducible dependency management. You do not need to manually create virtual environments or install dependencies.
 
 ```bash
-git clone https://github.com/AveryRPeterson/termux-agent-browser.git
-cd termux-agent-browser
+git clone https://github.com/AveryRPeterson/android-chrome-cdp-bridge.git
+cd android-chrome-cdp-bridge
 uv run main.py
 ```
 

@@ -17,8 +17,14 @@ def adb_connect(host: str, port: int) -> str | None:
 
 def forward_cdp_port(serial: str | None = None) -> bool:
     # Use an explicit -s <serial> selector so an ambiguous "more than one
-    # device/emulator" state (e.g. a phantom emulator-5554 from a prior
-    # `adb tcpip` experiment) cannot make the forward silently fail.
+    # device/emulator" state cannot make the forward silently fail.
+    #
+    # IMPORTANT (don't be confused later): when connecting over Wireless
+    # Debugging, the real Tab S9 (SM-X810) registers under the serial
+    # "emulator-5554" -- `adb devices` shows it as `emulator-5554  device`
+    # with product `gts9pwifieea`. It is NOT a phantom emulator. So a
+    # discovered serial of "emulator-5554" IS the tablet; forward to it
+    # normally. (A *true* phantom would be a leftover from `adb tcpip`.)
     cmd = ["adb"]
     if serial:
         cmd += ["-s", serial]

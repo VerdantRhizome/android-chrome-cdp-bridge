@@ -56,6 +56,28 @@ browser:
 > above use `9222`; if you run the connector with a different `CDP_PORT`,
 > point Hermes at that port instead.
 
+## Device serial: "emulator-5554" IS the tablet
+
+When connecting over **Wireless Debugging**, the real Tab S9 (SM-X810) shows up
+in `adb devices` as:
+
+```
+emulator-5554   device  product:gts9pwifieea model:SM_X810 ...
+```
+
+That `emulator-5554` serial is **the actual tablet**, not a phantom emulator.
+Don't try to "remove" it or forward around it — pass it straight to
+`adb -s emulator-5554` (the connector does this automatically via the
+`-s <serial>` selector once paired). A *true* phantom would only appear as a
+leftover from a prior `adb tcpip` experiment; the `gts9pwifieea` product string
+is how you tell them apart.
+
+> Pairing note: Wireless Debugging pairing is version-sensitive. If `adb pair`
+> reports `protocol fault ... Connection reset by peer` / `couldn't read status
+> message: Success`, the `adb` client version doesn't match the tablet's
+> `adbd`. Re-pair from the tablet's Wireless debugging screen (OFF → ON, then
+> "Pair device with pairing code") and tap **Allow** when the prompt appears.
+
 ## Driving the browser (what works on Termux)
 
 On `android-arm64` (Termux) Hermes's high-level browser tools

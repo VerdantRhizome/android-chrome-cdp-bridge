@@ -9,8 +9,10 @@ def adb_connect(host: str, port: int) -> str | None:
     result = subprocess.run(
         ["adb", "connect", f"{host}:{port}"], capture_output=True, text=True
     )
-    if "connected" in result.stdout and "failed" not in result.stdout:
+    out = (result.stdout or "") + (result.stderr or "")
+    if "connected" in out and "failed" not in out:
         return f"{host}:{port}"
+    print(f"[adb connect {host}:{port}] -> {out.strip()}")
     return None
 
 def forward_cdp_port(serial: str | None = None) -> bool:
@@ -74,29 +76,51 @@ def setup_cdp():
             print("\nADB connection failed. On your phone:")
             print("  Settings → Developer Options → Wireless debugging")
             print("  → 'Pair device with pairing code'")
-            pair_addr = input("Enter IP:PORT shown (or press Enter to skip): ").strip()
+            pair_addr = input("Enter PAIRING IP:PORT shown (or press Enter to skip): ").strip()
             if pair_addr:
                 code = input("Enter 6-digit code: ").strip()
-                subprocess.run(
-                    ["adb", "pair", pair_addr], input=code,
+                pair_res = subprocess.run(
+                    ["adb", "pair", pair_addr],
+                    input=code + "\n",
                     capture_output=True, text=True,
                 )
-                host, _ = pair_addr.rsplit(":", 1)
-                
-                print("\nPairing complete! Re-scanning for the connection port...")
-                service = discover_adb_service(timeout=5)
-                if service:
-                    host, port = service
-                    serial = adb_connect(host, port)
+                pair_out = (pair_res.stdout or "") + (pair_res.stderr or "")
+                print(pair_out.strip())
+                if "successfully paired" not in pair_out.lower():
+                    print("[error] adb pair did not confirm success; pairing may have failed.")
+                # Android tells you which CONNECT port to use after a successful pair.
+                # Parse "connect with adb connect <host>:<port>" from the pair output,
+                # falling back to the pairing host + a port you can type below.
+                connect_host, connect_port = None, None
+                for line in pair_out.splitlines():
+                    if "adb connect" in line:
+                        tok = line.split("adb connect")[-1].strip()
+                        if ":" in tok:
+                            connect_host, p = tok.rsplit(":", 1)
+                            if p.isdigit():
+                                connect_port = int(p)
+                if connect_host is None:
+                    connect_host = pair_addr.rsplit(":", 1)[0]
+
+                print("\nPairing attempted. Now connecting to the CONNECT port...")
+                if connect_port is None:
+                    cp = input(
+                        "Enter CONNECT port (main Wireless Debugging screen, NOT the pairing port): "
+                    ).strip()
+                    if cp.isdigit():
+                        connect_port = int(cp)
+                if connect_port is not None:
+                    serial = adb_connect(connect_host, connect_port)
                     if serial:
                         connected = True
                 else:
-                    connect_port_str = input(
-                        "Scan failed. Enter connect port (main Wireless debugging screen): "
-                    ).strip()
-                    if connect_port_str and adb_connect(host, int(connect_port_str)):
-                        serial = f"{host}:{int(connect_port_str)}"
-                        connected = True
+                    # last resort: re-scan via mDNS
+                    service = discover_adb_service(timeout=5)
+                    if service:
+                        host, port = service
+                        serial = adb_connect(host, port)
+                        if serial:
+                            connected = True
         else:
             print("Not connected, and no interactive TTY to prompt for pairing.")
 

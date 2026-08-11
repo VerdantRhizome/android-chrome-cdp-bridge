@@ -4,17 +4,26 @@ from zeroconf import Zeroconf, ServiceBrowser
 
 CDP_PORT = int(os.environ.get("CDP_PORT", 9222))
 
-def adb_connect(host: str, port: int) -> bool:
+def adb_connect(host: str, port: int) -> str | None:
+    """Return the connected device serial (host:port) or None on failure."""
     result = subprocess.run(
         ["adb", "connect", f"{host}:{port}"], capture_output=True, text=True
     )
-    return "connected" in result.stdout and "failed" not in result.stdout
+    if "connected" in result.stdout and "failed" not in result.stdout:
+        return f"{host}:{port}"
+    return None
 
-def forward_cdp_port() -> bool:
-    result = subprocess.run(
-        ["adb", "forward", f"tcp:{CDP_PORT}", "localabstract:chrome_devtools_remote"],
-        capture_output=True, text=True,
-    )
+def forward_cdp_port(serial: str | None = None) -> bool:
+    # Use an explicit -s <serial> selector so an ambiguous "more than one
+    # device/emulator" state (e.g. a phantom emulator-5554 from a prior
+    # `adb tcpip` experiment) cannot make the forward silently fail.
+    cmd = ["adb"]
+    if serial:
+        cmd += ["-s", serial]
+    cmd += ["forward", f"tcp:{CDP_PORT}", "localabstract:chrome_devtools_remote"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[warn] adb forward failed: {result.stderr.strip() or result.stdout.strip()}")
     return result.returncode == 0
 
 def discover_adb_service(timeout: int = 3):
@@ -47,11 +56,13 @@ def setup_cdp():
     service = discover_adb_service(timeout=4)
     
     connected = False
+    serial: str | None = None
     
     if service:
         host, port = service
         print(f"Discovered ADB service at {host}:{port}. Attempting to connect...")
-        if adb_connect(host, port):
+        serial = adb_connect(host, port)
+        if serial:
             connected = True
         else:
             print("[error] Discovered service but failed to connect (ADB pairing may have expired).")
@@ -76,19 +87,21 @@ def setup_cdp():
                 service = discover_adb_service(timeout=5)
                 if service:
                     host, port = service
-                    if adb_connect(host, port):
+                    serial = adb_connect(host, port)
+                    if serial:
                         connected = True
                 else:
                     connect_port_str = input(
                         "Scan failed. Enter connect port (main Wireless debugging screen): "
                     ).strip()
                     if connect_port_str and adb_connect(host, int(connect_port_str)):
+                        serial = f"{host}:{int(connect_port_str)}"
                         connected = True
         else:
             print("Not connected, and no interactive TTY to prompt for pairing.")
 
     if connected:
-        if forward_cdp_port():
+        if forward_cdp_port(serial):
             print(f"[success] Forwarded Android Chrome CDP to localhost:{CDP_PORT}")
             print(f"You can now run 'hermes' and it will use this live browser.")
         else:

@@ -7,10 +7,11 @@ endpoint is reachable (e.g. in CI without a phone), so the suite stays green
 everywhere; run it locally with the phone connected + wireless debugging on to
 exercise the full path.
 
-What it verifies (the real-world conditions this project exists to survive):
-  - The CDP endpoint answers /json/version (browser up).
-  - /json/list returns a target count (the saturation gauge signal).
-  - Target.getTargets reports at least one ATTACHED page target (the live tab),
+What it verifies (the forwarder's OUTPUT layer — the tab-count saturation
+gauge itself lives in the hermes-cdp-attach plugin's ``_count_cdp_targets``,
+not here):
+  - The CDP endpoint answers /json/version (browser up / forward alive).
+  - Target.getTargets reports at least one page target (the live tab),
     even when many inactive-window tabs are present.
 """
 import http.client
@@ -47,14 +48,6 @@ class TestLiveCdp(unittest.TestCase):
         data = self._http("/json/version")
         self.assertIn("Browser", data)
         self.assertIn("webSocketDebuggerUrl", data)
-
-    def test_target_list_count_is_reported(self):
-        # The saturation gauge: how many tabs Chrome exposes. On a real device
-        # with inactive windows this is often 100+. We only assert it's a
-        # non-negative integer (the gauge must not raise).
-        tabs = self._http("/json/list")
-        self.assertIsInstance(tabs, list)
-        self.assertGreaterEqual(len(tabs), 1)
 
     def test_gettargets_has_attached_page(self):
         # Authoritative live-target query. Even amid many inactive-window tabs,

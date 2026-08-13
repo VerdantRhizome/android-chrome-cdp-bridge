@@ -8,3 +8,6 @@ attach.log
 
 # uv
 .python-version
+
+# Runtime config (contains live LAN IP)
+config.json

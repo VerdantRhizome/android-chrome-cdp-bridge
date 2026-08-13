@@ -184,7 +184,7 @@ To re-run the live E2E locally (keep Chrome foregrounded):
 
 ```bash
 cd ~/.hermes/hermes-agent
-~/.hermes/hermes-agent/venv/bin/python /data/data/com.termux/files/usr/tmp/hermes-verify-hl.py
+~/.hermes/hermes-agent/venv/bin/python $TMPDIR/hermes-verify-hl.py
 ```
 
 ## Future improvement: keep-alive cron

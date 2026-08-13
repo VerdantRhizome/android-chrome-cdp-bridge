@@ -46,26 +46,26 @@ def _make_run(connect_stdout="connected", connect_rc=0, forward_rc=0):
 def test_adb_connect_returns_serial_on_success():
     calls, fake_run = _make_run(connect_stdout="already connected to 1.2.3.4:5555")
     mod.subprocess.run = fake_run
-    ser = mod.adb_connect("192.168.68.86", 45019)
-    assert ser == "192.168.68.86:45019", ser
+    ser = mod.adb_connect("192.168.1.100", 5555)
+    assert ser == "192.168.1.100:5555", ser
     assert any("connect" in c for c in calls)
 
 
 def test_adb_connect_returns_none_on_failure():
     calls, fake_run = _make_run(connect_stdout="failed to connect to 'x': Connection refused")
     mod.subprocess.run = fake_run
-    ser = mod.adb_connect("192.168.68.86", 1)
+    ser = mod.adb_connect("192.168.1.100", 1)
     assert ser is None
 
 
 def test_forward_cdp_port_is_device_aware():
     calls, fake_run = _make_run()
     mod.subprocess.run = fake_run
-    ok = mod.forward_cdp_port("192.168.68.86:45019")
+    ok = mod.forward_cdp_port("192.168.1.100:5555")
     assert ok is True
     fwd = [c for c in calls if "forward" in c][0]
     assert "-s" in fwd
-    assert "192.168.68.86:45019" in fwd
+    assert "192.168.1.100:5555" in fwd
     assert "tcp:9222" in fwd
     assert "localabstract:chrome_devtools_remote" in fwd
 
@@ -83,5 +83,5 @@ def test_forward_cdp_port_bare_when_no_serial():
 def test_forward_cdp_port_failure_propagates_false():
     calls, fake_run = _make_run(forward_rc=1)
     mod.subprocess.run = fake_run
-    ok = mod.forward_cdp_port("192.168.68.86:45019")
+    ok = mod.forward_cdp_port("192.168.1.100:5555")
     assert ok is False

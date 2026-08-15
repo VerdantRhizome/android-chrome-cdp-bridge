@@ -21,7 +21,7 @@ It will automatically find the randomized port, connect via `adb`, and forward t
 This project uses `uv` for blazing-fast, reproducible dependency management. You do not need to manually create virtual environments or install dependencies.
 
 ```bash
-git clone https://github.com/AveryRPeterson/android-chrome-cdp-bridge.git
+git clone https://github.com/VerdantRhizome/android-chrome-cdp-bridge.git
 cd android-chrome-cdp-bridge
 uv run main.py
 ```
@@ -56,21 +56,22 @@ browser:
 > above use `9222`; if you run the connector with a different `CDP_PORT`,
 > point Hermes at that port instead.
 
-## Device serial: "emulator-5554" IS the tablet
+## Device serial: "emulator-5554" IS the physical device
 
-When connecting over **Wireless Debugging**, the real Tab S9 (SM-X810) shows up
-in `adb devices` as:
+When connecting over **Wireless Debugging**, a physical Android device can
+register in `adb devices` under the generic serial `emulator-5554` (the
+wireless-debug transport shares the emulator serial space):
 
 ```
-emulator-5554   device  product:gts9pwifieea model:SM_X810 ...
+emulator-5554   device
 ```
 
-That `emulator-5554` serial is **the actual tablet**, not a phantom emulator.
+That `emulator-5554` serial is **the actual device**, not a phantom emulator.
 Don't try to "remove" it or forward around it — pass it straight to
 `adb -s emulator-5554` (the connector does this automatically via the
 `-s <serial>` selector once paired). A *true* phantom would only appear as a
-leftover from a prior `adb tcpip` experiment; the `gts9pwifieea` product string
-is how you tell them apart.
+leftover from a prior `adb tcpip` experiment; the product string shown by
+`adb devices -l` is how you tell them apart.
 
 > Pairing note: Wireless Debugging pairing is version-sensitive. If `adb pair`
 > reports `protocol fault ... Connection reset by peer` / `couldn't read status
@@ -93,7 +94,7 @@ fail before touching Chrome.
 mode is off). The high-level tools then drive the phone's Chrome directly via
 CDP — no `agent-browser` Node subprocess. This patch lives on the
 `feat/android-chrome-raw-cdp` branch of the fork
-`AveryRPeterson/hermes-agent` (not yet merged upstream).
+`VerdantRhizome/hermes-agent` (not yet merged upstream).
 
 Three ways to drive the browser:
 
@@ -204,7 +205,7 @@ connector only when the socket is down:
 hermes cron create \
   --schedule "*/1 * * * *" \
   --name "cdp-keepalive" \
-  --prompt "Run: cd ~/projects/android-chrome-cdp-bridge && CDP_PORT=9222 uv run attach.py --port 9222
+  --prompt "Run: cd <bridge-checkout> && CDP_PORT=9222 uv run attach.py --port 9222
 If the CDP forward is already live (HTTP 200 on http://localhost:9222/json/version)
 the script exits immediately and does nothing. Only reconnect when it is dead." \
   --deliver local

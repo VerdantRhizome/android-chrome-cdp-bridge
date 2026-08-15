@@ -20,10 +20,10 @@ def forward_cdp_port(serial: str | None = None) -> bool:
     # device/emulator" state cannot make the forward silently fail.
     #
     # IMPORTANT (don't be confused later): when connecting over Wireless
-    # Debugging, the real Tab S9 (SM-X810) registers under the serial
+    # Debugging, a physical device can register under the generic serial
     # "emulator-5554" -- `adb devices` shows it as `emulator-5554  device`
-    # with product `gts9pwifieea`. It is NOT a phantom emulator. So a
-    # discovered serial of "emulator-5554" IS the tablet; forward to it
+    # with a product string. It is NOT a phantom emulator. So a
+    # discovered serial of "emulator-5554" IS the device; forward to it
     # normally. (A *true* phantom would be a leftover from `adb tcpip`.)
     cmd = ["adb"]
     if serial:

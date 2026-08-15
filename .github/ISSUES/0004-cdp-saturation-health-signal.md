@@ -1,7 +1,7 @@
 # Feature Request #4: CDP target-list saturation health signal (inactive Chrome windows)
 
 - **Status:** Proposed (local issue draft — not pushed)
-- **Repo:** `AveryRPeterson/android-chrome-cdp-bridge`
+- **Repo:** `VerdantRhizome/android-chrome-cdp-bridge`
 - **Opened by:** local session (2026-08-07)
 - **Related:** issue #3 (WebView forwarding); research in
   `~/.hermes/skills/hermes/hermes-cdp-attach/references/android-chrome-cdp-quirks.md`
